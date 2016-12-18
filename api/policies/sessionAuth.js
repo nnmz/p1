@@ -9,13 +9,15 @@
  */
 module.exports = function(req, res, next) {
 
-  // User is allowed, proceed to the next policy, 
-  // or if this is the last policy, the controller
-  if (req.session.user) {
+  // Пользован не активирован
+  if(req.session.user && !req.session.user.active) {
+    return res.view('user/resend_activation_code');
+  }
+  // Пользователь активирован
+  if (req.session.user && req.session.user.active) {
     return next();
   }
 
-  // User is not allowed
-  // redirect to login page
+  // Пользователь не авторизован
   return res.redirect('/login');
 };

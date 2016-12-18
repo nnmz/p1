@@ -4,35 +4,21 @@
  * @description :: Server-side logic for managing users
  * @help        :: See http://sailsjs.org/#!/documentation/concepts/Controllers
  */
-var crypto = require('crypto');
 
 module.exports = {
 
   register: function(req, res){
     if(req.method == 'POST'){
       var model = req.allParams();
-      model.password = crypto.createHash('sha256').update(model.password).digest('hex');
+      model.password = UserService.getPasswordHash(model.password);
+
       delete model.id;
       User.create(model, function(error, data){
         if(error){
           res.view('user/error', {message: 'При регистрации пользователя произошла ошибка: ' + error.message});
         }
         else{
-          var nodemailer = require('nodemailer');
-          var smtpTransport = require('nodemailer-smtp-transport');
-          var transporter = nodemailer.createTransport(smtpTransport({
-              host: 'localhost',
-              port: 25,
-              ignoreTLS: true
-            })
-          );
-          var mailOptions ={
-            from: 'test@cloudmaps.ru' ,
-            to: model.email,
-            subject: 'User Activation Email',
-            text: 'http://localhost:1337/user/register/?id='+data.id+'&t='+model.password
-          };
-          transporter.sendMail(mailOptions, function(error, info){
+          UserService.sendActivationCode(data, function(error, info){
             if(error){
               res.view('user/error', {message: 'При регистрации пользователя произошла ошибка: ' + error.message});
             }
@@ -42,33 +28,7 @@ module.exports = {
       });
     }
     else if(req.method == 'GET'){
-      if(req.param('id') && req.param('t')){
-        var id = parseInt(req.param('id')),
-            token = req.param('t');
-        User.findOne(id).exec(function(error,user){
-          if(error){
-            res.view('user/error',{message: 'При активации пользователя произошла ошибка: ' + error.message});
-          }
-          else{
-            if(user.password == token){
-              User.update(id, {active: true}).exec(function(error){
-                if(error){
-                  res.view('user/error',{message: 'При активации пользователя произошла ошибка: ' + error.message});
-                }
-                else{
-                  res.redirect('/login');
-                }
-              });
-            }
-            else{
-              res.view('user/error',{message: 'При активации пользователя произошла ошибка: неверный ключ активации'});
-            }
-          }
-        });
-      }
-      else{
-        res.view();
-      }
+      res.view();
     }
   },
 
@@ -79,9 +39,10 @@ module.exports = {
           res.view('user/error',{message: 'При проверке логина и пароля произошла ошибка: ' + error.message});
         }
         else{
-          if(user.password == crypto.createHash('sha256').update(req.param('password')).digest('hex')){
+          if(UserService.checkPassword(user, req.param('password'))){
             req.session.user = user;
-            return res.redirect('/user/profile/'+user.id);
+
+            return res.redirect(UserService.getUserProfileURL(user));
           }
           else{
             res.view('user/error',{message: 'Неверный логин или пароль'});
@@ -94,7 +55,7 @@ module.exports = {
         return res.view();
       }
       else{
-        return res.redirect('/user/profile/'+req.session.user.id);
+        return res.redirect(UserService.getUserProfileURL(req.session.user));
       }
     }
   },
@@ -340,6 +301,55 @@ module.exports = {
     }
     else{
       return res.badRequest();
+    }
+  },
+
+  activate: function(req, res) {
+    if(req.param('id') && req.param('t')){
+      var id = parseInt(req.param('id')),
+          token = req.param('t');
+
+      User.findOne(id).exec(function(error,user){
+        if(error){
+          res.view('user/error',{message: 'При активации пользователя произошла ошибка: ' + error.message});
+        }
+        else{
+          if(user.password == token){
+            User.update(id, {active: true}).exec(function(error, rows){
+              if(error) {
+                res.view('user/error',{message: 'При активации пользователя произошла ошибка: ' + error.message});
+              } else if(req.session.user && rows.length) {
+                req.session.user = rows[0];
+                res.redirect(UserService.getUserProfileURL(req.session.user));
+              } else {
+                res.redirect('/login');
+              }
+            });
+          }
+          else{
+            res.view('user/error',{message: 'При активации пользователя произошла ошибка: неверный ключ активации'});
+          }
+        }
+      });
+    } else {
+      res.view();
+    }
+  },
+
+  'resend-activation-code':  function(req, res){
+    var user = req.session.user;
+
+    if(user && !user.active) {
+      UserService.sendActivationCode(user, function(error, info){
+        if(error){
+          res.view('user/error', {message: 'При регистрации пользователя произошла ошибка: ' + error.message});
+        }
+        else res.view('user/after_resend_activation_code');
+      });
+    } else if(user && user.active) {
+      res.redirect(UserService.getUserProfileURL(user));
+    } else {
+      res.redirect('user/register');
     }
   }
 };
