@@ -20,7 +20,8 @@ module.exports = {
     friends: {
       collection: 'friend',
       via: 'id_user'
-    }
+    },
+    last_activity: { type: 'datetime' }
   }
 };
 

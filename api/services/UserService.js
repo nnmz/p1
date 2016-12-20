@@ -19,5 +19,33 @@ module.exports = {
     };
 
     EmailService.sendMail(mailOptions, callback);
+  },
+  updateActivity: function(user, logout) {
+    User.update(user.id, { last_activity: logout ? null : new Date().toISOString() }).exec(function(error, rows){
+      if(!error) {
+        var user = rows[0];
+        sails.sockets.blast('online', { id: user.id, last_activity: user.last_activity });
+      }
+    });
+  },
+  getExpirationMilliseconds: function() {
+    // После 30 секундного простоя, пользователь считается оффлайн
+    return 0.5 * 60 * 1000;
+  },
+  getExpirationDate: function() {
+    var expirationDate = new Date();
+
+    expirationDate.setTime(expirationDate.getTime() - UserService.getExpirationMilliseconds());
+
+    return expirationDate;
+  },
+  isOnline: function(user) {
+    if(!user.last_activity) {
+      return false;
+    }
+
+    var userLastActivityDate = new Date(user.last_activity);
+
+    return userLastActivityDate.getTime() > UserService.getExpirationDate().getTime();
   }
 };

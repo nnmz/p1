@@ -15,6 +15,7 @@ module.exports = function(req, res, next) {
   }
   // Пользователь активирован
   if (req.session.user && req.session.user.active) {
+    UserService.updateActivity(req.session.user);
     return next();
   }
 

@@ -51,6 +51,8 @@ block scripts
   script(src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js")
   script(type="text/javascript").
     $(function(){
+      var usersOnline = {};
+      var expirationMilliseconds = #{UserService.getExpirationMilliseconds()};
       var my = JSON.parse('!{JSON.stringify(user)}');
 
       var map = L.map('map').setView([51.505, -0.09], 13);
@@ -68,6 +70,40 @@ block scripts
       });
 
       map.locate();
+
+      function set_user_online_timer(user) {
+        var lastUserInfo = usersOnline[user.id],
+            $userInfo = $('.user[data-user-id=' + user.id + ']'),
+            resetUserOnlineStatus = function () {
+              var $userInfo = $('.user[data-user-id=' + user.id + ']');
+
+              if ($userInfo.length) {
+                $userInfo.removeClass('online');
+                delete usersOnline[user.id];
+              }
+            };
+
+        if (lastUserInfo && typeof lastUserInfo.timeoutId != 'undefined') {
+          clearTimeout(lastUserInfo.timeoutId);
+        }
+
+        if(!user.last_activity) {
+          resetUserOnlineStatus();
+          return;
+        }
+
+        var timeout = new Date(user.last_activity).getTime() + expirationMilliseconds - new Date().getTime();
+
+        if(timeout > 0 && !$userInfo.hasClass('online')) {
+          $userInfo.addClass('online');
+        } else if(timeout <= 0) {
+          resetUserOnlineStatus();
+          return;
+        }
+
+        usersOnline[user.id] = user;
+        user.timeoutId = setTimeout(resetUserOnlineStatus, timeout);
+      }
 
       function get_requests(){
         $.ajax({
@@ -99,7 +135,17 @@ block scripts
 
         });
       };
-      
+
+      function get_users_history () {
+        $.ajax({
+          url: '/users/history'
+        }).done(function (response) {
+          response.forEach(function(user) {
+            set_user_online_timer(user);
+          });
+        });
+      }
+
       function get_friends(){
         $.ajax({
           url: '/user/friends/'+my.id,
@@ -120,15 +166,16 @@ block scripts
 
       get_requests();
       get_friends();
+      get_users_history();
 
       $('#newFriends').on('show.bs.modal', function(e){
         $.ajax({
           url: '/user/list',
           method: 'GET'
         }).done(function(response){
-          
+
           $('#newFriends .modal-body').html(response);
-          
+
           $(".request").on('click', function(e){
             $.ajax({
               url: '/user/request',
@@ -183,9 +230,13 @@ block scripts
           alert(result.response);
         }
       });
-      
+
       io.socket.get('/user/subscribe', function(resData, jwres){
         return;
+      });
+
+      io.socket.on('online', function (user) {
+        set_user_online_timer(user);
       });
 
       io.socket.on('request', function (event){

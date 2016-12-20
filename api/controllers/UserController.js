@@ -215,6 +215,7 @@ module.exports = {
   },
 
   logout: function(req, res){
+    UserService.updateActivity(req.session.user, true);
     delete req.session.user;
     return res.redirect('/');
   },
@@ -351,6 +352,16 @@ module.exports = {
     } else {
       res.redirect('user/register');
     }
+  },
+
+  history: function(req, res) {
+      User.find({}, function(error, rows) {
+        if(error)
+          return res.negotiate(error);
+        else {
+          res.json(rows.map(function(user) { return { id: user.id, last_activity: user.last_activity }}));
+        }
+      });
   }
 };
 

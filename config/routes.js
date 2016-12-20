@@ -49,5 +49,6 @@ module.exports.routes = {
   '/login': {controller: 'UserController', action: 'login'},
   '/logout': {controller: 'UserController', action: 'logout'},
   '/user/activate': {controller: 'UserController', action: 'activate'},
-  '/user/resend-activation-code': {controller: 'UserController', action: 'resend-activation-code'}
+  '/user/resend-activation-code': {controller: 'UserController', action: 'resend-activation-code'},
+  '/users/history': {controller: 'UserController', action: 'history'}
 };

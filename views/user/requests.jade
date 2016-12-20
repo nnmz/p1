@@ -2,10 +2,12 @@ if requests.length
   table.table.table-striped
     each request in requests
       -var name = [request.firstname, request.lastname].join(' ')
-      tr
+      -var isOnline = UserService.isOnline(request)
+      tr.user(data-user-id=request.id, class=isOnline ? 'online' : '')
         td
           img(src="/user/avatar/" + request.id, width="60", height="60" alt=name)
         td.vmiddle= name
+          span.indicate (online)
         td.vmiddle
           a.accept(href="#", data-id=request.id) Принять
           br
