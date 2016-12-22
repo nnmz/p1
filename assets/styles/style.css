@@ -1,3 +1,5 @@
 .vmiddle{ vertical-align: middle !important; }
 .user .indicate { display: none; color: #939393; font-size: .8em; }
 .user.online .indicate { display: inline-block }
+#map + .message { display: none; }
+#map.hidden + .message { display: block; }

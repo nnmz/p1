@@ -28,7 +28,9 @@ block body
     .panel.panel-default
       .panel-heading
         h1.panel-title Карта
-      #map.panel-body(style="height: 300px")
+      .panel-body
+        #map(style="height: 300px")
+        p.message Невозможно установить положение пользователя (например, пользователь не дал разрешение на определение его положения при запросе в браузере)
 
   #newFriends.modal.fade(tabindex='-1', role='dialog', aria-labelledby='newFriendsLabel')
     .modal-dialog(role='document')
@@ -51,25 +53,33 @@ block scripts
   script(src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js")
   script(type="text/javascript").
     $(function(){
-      var usersOnline = {};
-      var expirationMilliseconds = #{UserService.getExpirationMilliseconds()};
-      var my = JSON.parse('!{JSON.stringify(user)}');
+      function get_expiration_date () {
+        var expirationDate = new Date();
 
-      var map = L.map('map').setView([51.505, -0.09], 13);
-      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
+        expirationDate.setTime(expirationDate.getTime() - expirationMilliseconds);
 
-      map.on('locationfound', function(e){
-        map.setView([e.latitude, e.longitude],13);
-        L.marker([e.latitude, e.longitude]).addTo(map);
-      });
+        return expirationDate;
+      }
 
-      map.on('locationerror', function(e){
-        console.log(e.message);
-      });
+      function is_online (user) {
+        if (!user.last_activity) {
+          return false;
+        }
 
-      map.locate();
+        var userLastActivityDate = new Date(user.last_activity);
+
+        return userLastActivityDate.getTime() > get_expiration_date().getTime();
+      }
+
+      function update_coordinates (coordinates) {
+        $.ajax({
+          url: '/user/update-coordinates',
+          method: 'POST',
+          data: { coordinates: JSON.stringify(coordinates) }
+        }).done(function(response) {
+          console.log('send_coordinates', response);
+        });
+      }
 
       function set_user_online_timer(user) {
         var lastUserInfo = usersOnline[user.id],
@@ -164,9 +174,72 @@ block scripts
         });
       };
 
+      function set_location_marker(user) {
+        if(user.id == current_user.id || user.id != my.id) {
+          return;
+        }
+
+        last_location_marker = !last_location_marker ? L.marker() : last_location_marker.unbindPopup();
+
+        var $map = $('#map');
+        if(!user.last_coordinates || !user.last_coordinates.length) {
+          if(!$map.hasClass('hidden')) {
+            $map.addClass('hidden');
+          }
+          return;
+        }
+
+        if ($map.hasClass('hidden')) {
+          $map.removeClass('hidden');
+        }
+
+        var date = user.last_activity ? new Date(user.last_activity).toISOString().replace(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(.*)/, '$3.$2.$1 в $4:$5') : '',
+            message = is_online(user) ? 'Пользователь сейчас находится здесь' : ('Пользователь был здесь' + (date ? (' ' + date) : ''));
+
+        map.setView(user.last_coordinates, 13);
+
+        last_location_marker
+          .setLatLng(user.last_coordinates)
+          .addTo(map)
+          .bindPopup(message)
+          .openPopup();
+      }
+
+      var usersOnline = {};
+      var expirationMilliseconds = #{UserService.getExpirationMilliseconds()};
+      var my = JSON.parse('!{JSON.stringify(user)}');
+      var current_user = JSON.parse('!{JSON.stringify(current_user)}');
+
+      var map = L.map('map').setView([51.505, -0.09], 13);
+      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      var last_location_marker;
+
+
+      map.on('locationfound', function (e) {
+        var coordinates = [e.latitude, e.longitude];
+
+        if (my.id == current_user.id) {
+          map.setView(coordinates, 13);
+          L.marker(coordinates).addTo(map);
+        }
+
+        update_coordinates(coordinates);
+      });
+
+      map.on('locationerror', function (e) {
+        console.log(e.message);
+
+        update_coordinates([]);
+      });
+
+      map.locate();
+
       get_requests();
       get_friends();
       get_users_history();
+      set_location_marker(my);
 
       $('#newFriends').on('show.bs.modal', function(e){
         $.ajax({
@@ -253,6 +326,7 @@ block scripts
 
       io.socket.on('online', function (user) {
         set_user_online_timer(user);
+        set_location_marker(user);
       });
 
       io.socket.on('request', function (event){

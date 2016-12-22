@@ -24,7 +24,7 @@ module.exports = {
     User.update(user.id, { last_activity: logout ? null : new Date().toISOString() }).exec(function(error, rows){
       if(!error) {
         var user = rows[0];
-        sails.sockets.blast('online', { id: user.id, last_activity: user.last_activity });
+        sails.sockets.blast('online', { id: user.id, last_activity: user.last_activity, last_coordinates: user.last_coordinates });
       }
     });
   },
@@ -47,5 +47,10 @@ module.exports = {
     var userLastActivityDate = new Date(user.last_activity);
 
     return userLastActivityDate.getTime() > UserService.getExpirationDate().getTime();
+  },
+  updateCoordinates: function(user, coordinates) {
+    User.update(user.id, { last_coordinates: coordinates }).exec(function(error, rows){
+
+    });
   }
 };

@@ -21,7 +21,8 @@ module.exports = {
       collection: 'friend',
       via: 'id_user'
     },
-    last_activity: { type: 'datetime' }
+    last_activity: { type: 'datetime' },
+    last_coordinates: { type: 'json' }
   }
 };
 

@@ -67,7 +67,8 @@ module.exports = {
       }
       else{
         res.view({
-          user: _.omit(user, 'password')
+          user: _.omit(user, 'password'),
+          current_user: _.omit(req.session.user, 'password')
         });
       }
     });
@@ -343,6 +344,19 @@ module.exports = {
     }
   },
 
+  'update-coordinates': function(req, res) {
+    var user = req.session.user,
+        coordinates = req.param('coordinates');
+
+    if(req.method == 'POST' && user){
+      UserService.updateCoordinates(user, coordinates);
+    } else {
+      return res.negotiate();
+    }
+
+    return res.ok();
+  },
+
   'resend-activation-code':  function(req, res){
     var user = req.session.user;
 
@@ -365,7 +379,7 @@ module.exports = {
         if(error)
           return res.negotiate(error);
         else {
-          res.json(rows.map(function(user) { return { id: user.id, last_activity: user.last_activity }}));
+          res.json(rows.map(function(user) { return { id: user.id, last_activity: user.last_activity, last_coordinates: user.last_coordinates }}));
         }
       });
   }
