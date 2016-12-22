@@ -61,11 +61,12 @@ module.exports = {
   },
 
   profile: function(req, res){
-    User.findOne(req.param('id')).exec(function(error, user){
+    User.findOne({ username: req.param('id') }).exec(function(error, user){
       if(error){
         res.view('user/error',{message: 'Ошибка: ' + error.message});
-      }
-      else{
+      } else if(!user) {
+        res.view('user/error',{message: 'Ошибка: Пользователь не найден'});
+      } else {
         res.view({
           user: _.omit(user, 'password'),
           current_user: _.omit(req.session.user, 'password')

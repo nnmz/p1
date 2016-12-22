@@ -2,7 +2,7 @@ var crypto = require('crypto');
 
 module.exports = {
   getUserProfileURL: function(user) {
-    return '/user/profile/' + user.id;
+    return '/user/profile/' + user.username;
   },
   getPasswordHash: function(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
