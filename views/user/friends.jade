@@ -5,7 +5,7 @@ if friends.length
       -var isOnline = UserService.isOnline(friend)
       tr.user(data-user-id=friend.id, class=isOnline ? 'online' : '')
         td
-          img(src="/user/avatar/" + friend.id, width="60", height="60" alt=name)
+          img(src="/user/avatar/" + friend.id + "?cropped=true", width="60", height="60" alt=name)
         td.vmiddle= name
           span.indicate (online)
         td.vmiddle

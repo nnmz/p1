@@ -182,9 +182,13 @@ module.exports = {
 
   avatar: function(req, res){
     var fs = require('fs');
+    var isCropped = req.param("cropped");
     var avatar_dir = sails.config.rootPath + '/avatars/';
+
     if(req.method == 'GET'){
-      var avatar = avatar_dir + req.param('id') + '.jpg';
+      var fileName = (isCropped ? 'cropped_' : '') + req.param('id') + '.jpg';
+      var avatar = avatar_dir + fileName;
+
       fs.stat(avatar, function(error, stats){
         if(error){
           return res.sendfile(avatar_dir + 'default-avatar.jpg');
@@ -202,7 +206,9 @@ module.exports = {
         if(error)
           return res.negotiate(error);
         else{
-          fs.rename(files[0].fd, avatar_dir+req.session.user.id+'.jpg', function(error){
+          var fileName = (isCropped ? 'cropped_' : '') + req.session.user.id + '.jpg';
+
+          fs.rename(files[0].fd, avatar_dir + fileName, function(error){
             if(error)
               return res.negotiate(error);
             else

@@ -197,34 +197,50 @@ block scripts
         });
       });
 
-      var uploader = new plupload.Uploader({
-          browse_button: 'select-avatar',
-          url: '/user/avatar',
-          multi_selection: false,
-          filters: {
-            mime_types : [
-                { title : "Image files", extensions : "jpg, jpeg" },
-            ],
-            max_file_size: "2000kb",
-          },
-          resize:{
-            width: 200,
-            height: 200
-          }
-      });
+      var avatarCroppedUploaded,
+          uploader = new plupload.Uploader({
+              browse_button: 'select-avatar',
+              url: '/user/avatar',
+              multi_selection: false,
+              filters: {
+                mime_types: [
+                  {title: "Image files", extensions: "jpg, jpeg"},
+                ],
+                max_file_size: "2000kb",
+              },
+              resize: {
+                width: 200,
+                height: 200
+              }
+            });
 
       uploader.init();
 
       uploader.bind('FilesAdded', function(up, files){
-        if(files.length){
+        if(files.length) {
+          uploader.settings.url = '/user/avatar';
+          uploader.settings.resize.crop = false;
+
+          avatarCroppedUploaded = false;
+
           uploader.start();
         }
       });
 
       uploader.bind('FileUploaded', function(up, file, result){
         if(result.status == 200){
-          var src = $('#avatar').attr('src').split('?',1)[0]+ '?_'+ new Date().getTime();
-          $('#avatar').attr('src', src);
+          if(!avatarCroppedUploaded) {
+            var src = $('#avatar').attr('src').split('?',1)[0]+ '?_'+ new Date().getTime();
+            $('#avatar').attr('src', src);
+
+            uploader.settings.url = '/user/avatar?cropped=true';
+            uploader.settings.resize.crop = true;
+            file.status = plupload.QUEUED;
+
+            avatarCroppedUploaded = true;
+
+            uploader.start();
+          }
         }
         else{
           alert(result.response);
