@@ -2,13 +2,17 @@ if friends.length
   table.table.table-striped
     each friend in friends
       -var name = [friend.firstname, friend.lastname].join(' ');
-      -var isOnline = UserService.isOnline(friend)
+      -var isOnline = UserService.isOnline(friend);
+      -var userProfileURL = UserService.getUserProfileURL(friend);
       tr.user(data-user-id=friend.id, class=isOnline ? 'online' : '')
         td
-          img(src="/user/avatar/" + friend.id + "?cropped=true", width="60", height="60" alt=name)
+          a(href=userProfileURL, title="Просмотр профиля")
+            img(src="/user/avatar/" + friend.id + "?cropped=true", width="60", height="60" alt=name)
         td.vmiddle= name
           span.indicate (online)
         td.vmiddle
           a.delete-friend(href="#", data-id=friend.id) Удалить
+          br
+          a.user-profile(href=userProfileURL) Просмотр профиля
 else
   span У Вас пока нет друзей

@@ -61,16 +61,36 @@ module.exports = {
   },
 
   profile: function(req, res){
-    User.findOne({ username: req.param('id') }).exec(function(error, user){
-      if(error){
-        res.view('user/error',{message: 'Ошибка: ' + error.message});
-      } else if(!user) {
-        res.view('user/error',{message: 'Ошибка: Пользователь не найден'});
-      } else {
-        res.view({
-          user: _.omit(user, 'password'),
-          current_user: _.omit(req.session.user, 'password')
+    var current_user = req.session.user;
+
+    if(!current_user) {
+      return res.negotiate();
+    }
+
+    User.findOne(current_user.id).populate('friends').exec(function(error, user) {
+      if(!error){
+        current_user = user;
+
+        User.findOne({ username: req.param('id') }).exec(function(error, user){
+          if(error){
+            res.view('user/error',{message: 'Ошибка: ' + error.message});
+          } else if(!user) {
+            res.view('user/error',{message: 'Ошибка: Пользователь не найден'});
+          } else {
+            var isFriend = _.some(current_user.friends, function(friend){return friend.id_friend == user.id;});
+
+            if(current_user.id == user.id || isFriend) {
+              res.view({
+                user: _.omit(user, 'password'),
+                current_user: _.omit(req.session.user, 'password')
+              });
+            } else {
+              res.view('user/error',{message: 'Ошибка: Просмотр профиля недоступен. Пользователь не является Вашим другом'});
+            }
+          }
         });
+      } else {
+        res.view('user/error',{message: 'Ошибка: Ваш пользователь удален'});
       }
     });
   },
