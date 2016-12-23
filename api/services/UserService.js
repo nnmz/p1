@@ -52,5 +52,8 @@ module.exports = {
     User.update(user.id, { last_coordinates: coordinates }).exec(function(error, rows){
 
     });
+  },
+  dateToStr: function(date) {
+    return new Date(date).toISOString().replace(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(.*)/, '$3.$2.$1 в $4:$5')
   }
 };

@@ -1,0 +1,12 @@
+ul.list-unstyled
+  if messages.length
+    each message in messages
+      - var profile_id = from == message.from ? from : to;
+      li.user(data-user-id=message.from)
+        div.media
+          div(class=from == message.from ? 'media-left' : 'media-right')
+            a(href="/user/profile/" + profile_id, title="Посмотреть профиль", target="_blank")
+              img.media-object.img-circle(src="/user/avatar/" + profile_id + "?cropped=true", width="60", height="60")
+          div.media-body.message
+            p #{message.message}
+            div.date #{UserService.dateToStr(message.date)}

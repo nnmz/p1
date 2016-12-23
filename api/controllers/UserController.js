@@ -108,7 +108,19 @@ module.exports = {
                 if(error)
                   return res.negotiate(error);
                 else{
-                  return res.view({friends: friends});
+                  switch(req.param('view')) {
+                    case 'json':
+                      return res.json(_.map(friends, function(friend) { return _.omit(friend, 'password') }));
+                      break;
+
+                    case 'as-list-for-messanger':
+                      return res.view('user/as_list_for_messanger', { friends: friends });
+                      break;
+
+                    default:
+                      return res.view({ friends: friends });
+                      break;
+                  }
                 }
               });
             }
@@ -282,6 +294,7 @@ module.exports = {
     if(req.isSocket && req.session.user){
       Request.watch(req);
       Friend.watch(req);
+      Message.watch(req);
     }
     return res.ok();
   },
@@ -403,6 +416,59 @@ module.exports = {
           res.json(rows.map(function(user) { return { id: user.id, last_activity: user.last_activity, last_coordinates: user.last_coordinates }}));
         }
       });
+  },
+
+  messages: function(req, res) {
+    var user = req.session.user,
+        from = parseInt(req.param('id', 0));
+
+    if(!from) {
+      return { messages: [] };
+    }
+
+    Message.find({
+      to: [user.id, from],
+      from: [user.id, from]
+    }).exec(function(error, messages) {
+      return res.view({
+        messages: error ? [] : messages,
+        to: user.id,
+        from: from
+      });
+    });
+  },
+
+  message: function(req, res) {
+    if(req.xhr) {
+      if (req.method == 'POST') {
+        var user = req.session.user,
+          to = req.param('id', 0),
+          message = req.param('message');
+
+        if (!to) {
+          return res.negotiate('Не указан адресат сообщения');
+        }
+
+        User.findOne(to).exec(function (error, userTo) {
+          if (error) {
+            return res.negotiate(error);
+          }
+
+          Message.create({
+            from: user.id,
+            to: userTo.id,
+            message: message,
+            date: new Date().toISOString(),
+            deleted: false
+          }).exec(function (error, row) {
+            if (error) {
+              return res.negotiate(error);
+            }
+            Message.publishCreate(row, req);
+            res.ok();
+          });
+        });
+      }
+    }
   }
 };
-

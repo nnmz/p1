@@ -8,6 +8,8 @@ block body
         span.navbar-brand= name
       ul.nav.navbar-nav.navbar-right
         li
+          a.messanger(href="#", data-toggle="modal", data-target="#im") Сообщения
+        li
           a(href="/logout") Выход
   .col-sm-3.text-center
     img#avatar(src="/user/avatar/"+user.id, alt=name)
@@ -43,6 +45,28 @@ block body
           | ...
         .modal-footer
           button.btn.btn-default(type='button', data-dismiss='modal') Закрыть
+
+  #im.modal.fade(tabindex='-1', role='dialog', aria-labelledby='imLabel')
+    .modal-dialog.modal-lg(role='document')
+      .modal-content
+        .modal-header
+          button.close(type='button', data-dismiss='modal', aria-label='Close')
+            span(aria-hidden='true') ×
+          h4#imLabel.modal-title Сообщения
+        .modal-body
+          div.row
+            div.col-sm-7.messages-container
+              div.alert.alert-warning Выберите друга, с которым хотите начать общение
+            div.col-sm-5.sidebar
+        .modal-footer
+          div.row
+            div.col-sm-10
+              textarea.new-message(name="message")
+            div.col-sm-2
+              div.btn-toolbar
+                button.btn.btn-success(type='button')
+                  i.glyphicon.glyphicon-send
+                  | &nbsp; Отправить
 
 block styles
   link(rel="stylesheet", href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css")
@@ -174,6 +198,20 @@ block scripts
         });
       };
 
+      function scroll_top(container) {
+        scroll_to(container, 0);
+      }
+
+      function scroll_bottom(container) {
+        var $contaner = $(container);
+        scroll_to(container, $contaner[0].scrollHeight);
+      }
+
+      function scroll_to(container, position) {
+        var $contaner = $(container);
+        $contaner.animate({ scrollTop: position }, 170);
+      }
+
       function set_location_marker(user) {
         if(user.id == current_user.id || user.id != my.id) {
           return;
@@ -203,6 +241,16 @@ block scripts
           .addTo(map)
           .bindPopup(message)
           .openPopup();
+      }
+
+      function get_messages(user_id) {
+        $.ajax({
+          url: '/user/messages/' + user_id,
+          method: 'GET'
+        }).done(function (response) {
+          $('#im .messages-container').html(response);
+          scroll_bottom('#im .messages-container');
+        });
       }
 
       var usersOnline = {};
@@ -267,6 +315,66 @@ block scripts
             });
           });
 
+        });
+      });
+
+      $(document).on('keypress', '.new-message', function(e) {
+        if (e.which == 13 || e.keyCode == 13) {
+          $('#im .btn-success').click();
+          return false;
+        }
+      });
+
+      $(document).on('click', '#im .btn-success', function(e) {
+        var $message = $('#im .new-message'),
+            message = $message.val(),
+            to = $('#im .sidebar .user.active').data('user-id');
+
+        if(!message.trim() || !to) {
+          return;
+        }
+
+        $.ajax({
+          url: '/user/message',
+          method: 'POST',
+          data: { id: to, message: message }
+        }).done(function (response) {
+          $message.val('');
+          get_messages(to);
+        });
+      });
+
+      $(document).on('click', '#im .sidebar li.user', function(e) {
+        var $el = $(e.currentTarget),
+            isActive = $el.hasClass('active');
+
+        $('#im .sidebar .user.active').removeClass('active');
+
+        $el.addClass('active');
+
+        if(!$('#im .messages-container .alert').hasClass('hidden')) {
+          $('#im .messages-container .alert').addClass('hidden');
+        }
+
+        if(!isActive) {
+          get_messages($el.data('user-id'));
+        }
+      });
+
+      $('#im').on('hide.bs.modal', function (e) {
+        $('#im .messages-container .list-unstyled').remove();
+        $('#im .messages-container .alert.hidden').removeClass('hidden');
+      });
+
+      $('#im').on('show.bs.modal', function (e) {
+        $.ajax({
+          url: '/user/friends/' + current_user.id + '?view=as-list-for-messanger',
+          method: 'GET'
+        }).done(function (response) {
+          $('#im .sidebar').html(response);
+          if ($('#im .messages-container .alert').hasClass('hidden')) {
+            $('#im .messages-container .alert').removeClass('hidden');
+          }
         });
       });
 
@@ -358,6 +466,20 @@ block scripts
       io.socket.on('delete_friend', function(data){
         if(my.id == data.id_user || my.id == data.id_friend){
           get_friends();
+        }
+      });
+
+      io.socket.on('message', function(data){
+        if(current_user.id == data.data.to){
+          var $user = $('#im .sidebar .user[data-user-id=' + data.data.from + ']');
+          if($('#im').is(':hidden')) {
+            $('.messanger').click();
+            setTimeout(function() { $user.click(); }, 300);
+          } else if(!$user.hasClass('active')) {
+            $user.click();
+          } else {
+            get_messages($('#im .sidebar .user.active').data('user-id'));
+          }
         }
       });
 

@@ -1,5 +1,108 @@
-.vmiddle{ vertical-align: middle !important; }
-.user .indicate { display: none; color: #939393; font-size: .8em; }
-.user.online .indicate { display: inline-block }
-#map + .message { display: none; }
-#map.hidden + .message { display: block; }
+.vmiddle {
+  vertical-align: middle !important;
+}
+
+.user .last-activity,
+.user .indicate {
+  color: #939393;
+  font-size: .8em;
+}
+
+.user .indicate {
+  display: none;
+}
+
+.user.online .indicate {
+  display: inline-block
+}
+
+.user.online .last-activity {
+  display: none
+}
+
+#map + .message {
+  display: none;
+}
+
+#map.hidden + .message {
+  display: block;
+}
+
+#im .modal-body {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+#im .messages-container,
+#im .sidebar {
+  height: 400px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+#im .sidebar {
+  border-left: 1px #ccc solid;
+  padding-top: 5px;
+}
+
+#im .media h4 {
+  margin-bottom: 0;
+}
+
+#im .media p {
+  margin-bottom: 3px;
+}
+#im ul li.user {
+  padding: 5px;
+}
+#im .sidebar ul li.user:hover {
+  cursor: pointer;
+  background-color: #f4f4f4;
+}
+
+#im .sidebar ul .user.active {
+  background-color: #f3f3f3;
+}
+
+#im .alert { position: absolute; text-align: center; width: 402px; margin-left: -201px; margin-top: -26px; top: 50%; left: 50%; }
+
+#im .new-message {
+  width: 100%;
+  height: 34px;
+}
+
+#im .messages-container .media-right {
+  float: right;
+}
+
+#im .messages-container .media-body {
+  vertical-align: middle;
+  padding: 10px 10px 20px 10px;
+  position: relative;
+  border-radius: 5px;
+}
+
+#im .messages-container .media-body .date {
+  position: absolute;
+  bottom: 5px;
+  font-size: .8em;
+  line-heigh: 1em;
+  color: #939393;
+}
+
+#im .messages-container .media-left + .media-body {
+  background-color: #F0F4F8;
+}
+
+#im .messages-container .media-right + .media-body {
+  background-color: #C7EDFC;
+}
+
+#im .messages-container .media-left + .media-body .date {
+  right: 10px;
+}
+
+#im .messages-container .media-right + .media-body .date {
+  left: 10px;
+}

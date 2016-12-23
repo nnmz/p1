@@ -1,0 +1,18 @@
+if friends.length
+  ul.list-unstyled
+    each friend in friends
+      -var name = [friend.firstname, friend.lastname].join(' ');
+      -var isOnline = UserService.isOnline(friend);
+      -var userProfileURL = UserService.getUserProfileURL(friend);
+      li.user(data-user-id=friend.id, class=isOnline ? 'online' : '')
+        div.media
+          div.media-left
+            a(href="javascript:void(0)", title="Написать сообщение", target="_blank")
+              img.media-object(src="/user/avatar/" + friend.id + "?cropped=true", width="60", height="60" alt=name)
+          div.media-body
+            h4.media-heading #{name}
+            p Никнейм: #{friend.username}
+            p.indicate Сейчас online
+            p.last-activity #{friend.last_activity ? ('Последний вход: ' + UserService.dateToStr(friend.last_activity)) : 'Сейчас не в сети'}
+else
+  span У Вас пока нет друзей
