@@ -472,9 +472,12 @@ block scripts
       io.socket.on('message', function(data){
         if(current_user.id == data.data.to){
           var $user = $('#im .sidebar .user[data-user-id=' + data.data.from + ']');
+
           if($('#im').is(':hidden')) {
             $('.messanger').click();
-            setTimeout(function() { $user.click(); }, 300);
+            setTimeout(function() {
+              $('#im .sidebar .user[data-user-id=' + data.data.from + ']').click();
+            }, 300);
           } else if(!$user.hasClass('active')) {
             $user.click();
           } else {
